@@ -32,12 +32,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.glance.appwidget.updateAll
 import dev.itsvic.DaysCountdown.ui.theme.DaysCountdownTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 import java.util.Date
 import java.util.Locale
 
@@ -108,8 +111,8 @@ fun CountdownDateInput(application: Application) {
         if (showDatePicker) {
             CountdownDatePickerModal(
                 onDateSelected = { date ->
-                    runBlocking {
-                        if (date != null) {
+                    if (date != null) {
+                        CoroutineScope(Job() + Dispatchers.IO).launch {
                             setDate(application, date)
                         }
                     }
@@ -159,4 +162,5 @@ suspend fun setDate(application: Application, millis: Long) {
             .setDateMillis(millis)
             .build()
     }
+    MyAppWidget().updateAll(application)
 }

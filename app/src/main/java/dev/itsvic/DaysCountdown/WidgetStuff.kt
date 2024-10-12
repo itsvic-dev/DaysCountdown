@@ -1,11 +1,10 @@
 package dev.itsvic.DaysCountdown
 
 import android.content.Context
-import android.os.Build
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
@@ -16,16 +15,21 @@ import androidx.glance.ImageProvider
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.provideContent
-import androidx.glance.background
+import androidx.glance.appwidget.updateAll
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.padding
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import androidx.work.CoroutineWorker
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequest
+import androidx.work.WorkManager
+import androidx.work.WorkerParameters
 import kotlinx.coroutines.flow.map
+import java.util.concurrent.TimeUnit
 
 class MyWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = MyAppWidget()
@@ -33,6 +37,7 @@ class MyWidgetReceiver : GlanceAppWidgetReceiver() {
 
 class MyAppWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        context.startTimeSyncWorker()
         provideContent {
             GlanceTheme {
                 WidgetContent(context)
@@ -68,10 +73,33 @@ class MyAppWidget : GlanceAppWidget() {
                         color = GlanceTheme.colors.primary
                     )
                 )
-                Text("days left", style = TextStyle(
-                    color = GlanceTheme.colors.onSurfaceVariant,
-                ))
+                Text(
+                    "days left", style = TextStyle(
+                        color = GlanceTheme.colors.onSurfaceVariant,
+                    )
+                )
             }
         }
     }
+}
+
+class TimeSyncWorker(
+    private val context: Context,
+    private val params: WorkerParameters,
+) : CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result {
+        MyAppWidget().updateAll(context)
+        return Result.success()
+    }
+}
+
+fun Context.startTimeSyncWorker() {
+    val request = PeriodicWorkRequest.Builder(TimeSyncWorker::class.java, 1, TimeUnit.HOURS)
+        .build()
+    WorkManager.getInstance(this)
+        .enqueueUniquePeriodicWork(
+            "WidgetTimeSyncWorker",
+            ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
+            request
+        )
 }
