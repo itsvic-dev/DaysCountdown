@@ -12,8 +12,8 @@ android {
         applicationId = "dev.itsvic.DaysCountdown"
         minSdk = 31
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 10001
+        versionName = "1.0.1"
 
         vectorDrawables {
             useSupportLibrary = true
